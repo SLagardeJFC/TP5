@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -83,16 +84,14 @@ public class DAO {
 	public int numberOfOrdersForCustomer(int customerId) throws DAOException {
 		int result = 0;
 
-		String sql = "SELECT COUNT(*) AS NUMBER FROM PURCHASE_ORDER WHERE CUSTOMER_ID = ?";
-		// Syntaxe "try with resources" 
-		// cf. https://stackoverflow.com/questions/22671697/try-try-with-resources-and-connection-statement-and-resultset-closing
+		String sql = "SELECT COUNT(CUSTOMER_ID) AS NUMBER FROM PURCHASE_ORDER WHERE CUSTOMER_ID = ?";
 		try (Connection connection = myDataSource.getConnection(); // Ouvrir une connexion
-			Statement stmt = connection.createStatement(); // On crée un statement pour exécuter une requête
-			ResultSet rs = stmt.executeQuery(sql) // Un ResultSet pour parcourir les enregistrements du résultat
+			PreparedStatement stmt = connection.prepareStatement(sql); // On crée un statement pour exécuter une requête
 		) {
-			rs.next(); // Pas la peine de faire while, il y a 1 seul enregistrement
-			// On récupère le champ NUMBER de l'enregistrement courant
-			result = rs.getInt("NUMBER");
+                        stmt.setInt(1, customerId);
+                        ResultSet rs = stmt.executeQuery();
+			rs.next();
+                        result = rs.getInt("NUMBER");
 
 		} catch (SQLException ex) {
 			Logger.getLogger("DAO").log(Level.SEVERE, null, ex);
@@ -110,29 +109,60 @@ public class DAO {
 	 * @throws DAOException
 	 */
 	CustomerEntity findCustomer(int customerId) throws DAOException {
-            String sql = "SELECT NAME FROM CUSTOMER WHERE CUSTOMER_ID = ? ";
+           /* String sql = "SELECT * FROM CUSTOMER WHERE CUSTOMER_ID = ? ";
             CustomerEntity result = null;
 		try (Connection connection = myDataSource.getConnection();
 			PreparedStatement stmt = connection.prepareStatement(sql)) {
 
 			stmt.setInt(1, customerID);
-			try (ResultSet rs = stmt.executeQuery()) {
-				if (rs.next()) {
-					String name = rs.getString("NAME");
-					String address = rs.getString("ADDRESSLINE1");
-					result = new CustomerEntity(customerID, name, address);
-				}
-			}
+			ResultSet rs = stmt.executeQuery();
+                        rs.next();
+			String name = rs.getString("NAME");
+			String address = rs.getString("ADDRESSLINE1");
+                        
+                        result = new CustomerEntity(customerId, rs.getString("NAME"), rs.getString("ADRESSELINE1"));
+			//result = new CustomerEntity(customerID, name, address);
+				
+			
 		}  catch (SQLException ex) {
 			Logger.getLogger("DAO").log(Level.SEVERE, null, ex);
 			throw new DAOException(ex.getMessage());
 		}
 
-		return result;
+		return result;*/
+                
+            CustomerEntity result = null;
+            String name = "SELECT * FROM CUSTOMER WHERE CUSTOMER_ID = ?";
+                try (Connection connection = myDataSource.getConnection();
+                PreparedStatement stmt = connection.prepareStatement(name)){             
+                    stmt.setInt(1, customerID);
+                    ResultSet rs = stmt.executeQuery();
+                    rs.next();
+                    result = new CustomerEntity(customerID,rs.getString("NAME"),rs.getString("ADDRESSLINE1"));
+                    
+                } catch (SQLException ex) {
+			Logger.getLogger("DAO").log(Level.SEVERE, null, ex);
+			throw new DAOException(ex.getMessage());
+		}
+                return result;    
 	}
 
-    List<CustomerEntity> customersInState(String state) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    List<CustomerEntity> customersInState(String state) throws DAOException {
+        List<CustomerEntity> resultList = new ArrayList() {};
+            String name = "SELECT * FROM CUSTOMER WHERE STATE = ?";
+                try (Connection connection = myDataSource.getConnection();
+                PreparedStatement stmt = connection.prepareStatement(name)){             
+                    stmt.setString(1, state);
+                    ResultSet rs = stmt.executeQuery();
+                    while(rs.next()){
+                        CustomerEntity result = new CustomerEntity(rs.getInt("CUSTOMER_ID"),rs.getString("NAME"),rs.getString("ADDRESSLINE1"));
+                        resultList.add(result);
+                    }
+                } catch (SQLException ex) {
+			Logger.getLogger("DAO").log(Level.SEVERE, null, ex);
+			throw new DAOException(ex.getMessage());
+		}
+                return resultList;
     }
 
 	
